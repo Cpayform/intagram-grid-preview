@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grid Studio | Instagram Preview</title>
+<meta name="description" content="Build and share an Instagram grid preview from hosted image links.">
+<style>
+:root {
+  --bg:#f4f3f0;
+  --paper:#fffefa;
+  --text:#101010;
+  --muted:#79766f;
+  --line:#e4e0d8;
+  --black:#121212;
+  --accent:#c9ff43;
+  --accent-soft:#edf9c8;
+  --success:#227242;
+  --shadow:0 24px 70px rgba(24,22,18,.08);
+  --radius:24px;
+  --gap:4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+button,textarea{font:inherit}
+body:before{content:"";position:fixed;left:0;top:0;width:100%;height:290px;background:linear-gradient(180deg,#eae7df 0%,var(--bg) 100%);z-index:-1}
+.shell{max-width:1240px;margin:0 auto;padding:31px 24px 54px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:11px;background:var(--black);display:grid;place-items:center}
+.mark:after{content:"";width:15px;height:15px;border:2px solid var(--accent);border-radius:4px}
+.brand-text strong{display:block;font-size:17px;letter-spacing:-.04em}
+.brand-text span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;margin-top:2px}
+.top-status{font-size:12px;font-weight:700;color:var(--success);background:#eef7ed;border:1px solid #d6e9d2;border-radius:999px;padding:9px 13px}
+.layout{display:grid;grid-template-columns:380px minmax(380px,1fr);gap:28px;align-items:start}
+.editor{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:25px;box-shadow:var(--shadow);position:sticky;top:22px}
+.step{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.13em;margin-bottom:15px}
+.step:before{content:"01";color:#111;background:var(--accent);padding:6px 7px;border-radius:8px;letter-spacing:0}
+.editor h1{font-size:34px;line-height:1.02;letter-spacing:-.065em;margin:0 0 10px}
+.lead{font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 23px}
+.input-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:13px;font-weight:700}
+.count{font-size:12px;color:var(--muted);font-weight:400}
+textarea{display:block;width:100%;height:246px;padding:13px;border:1px solid var(--line);border-radius:14px;resize:vertical;background:#fff;color:#35332f;font-size:12px;line-height:1.55}
+textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
+.upload-input{display:none}
+.upload-progress{font-variant-numeric:tabular-nums}
+.mobile-edit{
+ display:none;position:fixed;right:18px;bottom:max(20px,env(safe-area-inset-bottom));
+ z-index:50;min-height:48px;padding:0 19px;border:0;border-radius:999px;
+ background:var(--black);color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+ box-shadow:0 10px 28px rgba(0,0,0,.26)
+}
+.mobile-edit.active{background:var(--accent);color:#111}
+.btn{border-radius:13px;min-height:49px;padding:0 16px;border:1px solid var(--line);background:white;font-size:14px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;transition:transform .1s ease,opacity .15s ease}
+.btn:hover{opacity:.76}.btn:active{transform:scale(.985)}.btn.busy{opacity:.6;pointer-events:none}
+.btn.primary{background:var(--black);border-color:var(--black);color:white}
+.btn.share{background:var(--accent);border-color:var(--accent);color:#111}
+.message{margin:16px 0 0;min-height:32px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.5}
+.message.good{color:var(--success)}
+.message.bad{color:#b63434}
+.undo-toast{display:none;align-items:center;justify-content:space-between;gap:14px;margin-top:13px;padding:12px 13px 12px 15px;border-radius:13px;background:#111;color:#fff;font-size:12.5px;line-height:1.4;box-shadow:0 15px 32px rgba(0,0,0,.16)}
+.undo-toast.visible{display:flex;animation:undoIn .17s ease}
+.undo-button{border:1px solid rgba(201,255,67,.55);background:var(--accent);color:#111;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.undo-button:hover{opacity:.84}
+@keyframes undoIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.preview-wrap{padding:0 0 12px}
+.preview-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 17px}
+.preview-head h2{font-size:29px;letter-spacing:-.06em;margin:0}
+.preview-head p{margin:0;font-size:13px;color:var(--muted)}
+.phone{width:min(100%,690px);margin-left:auto;background:var(--paper);border-radius:31px;border:1px solid var(--line);box-shadow:var(--shadow);padding:9px;overflow:hidden}
+.device-top{height:45px;display:flex;align-items:center;justify-content:center;position:relative}
+.dynamic-island{height:26px;width:95px;border-radius:15px;background:#111}
+.instagram-header{padding:13px 14px 18px;display:flex;justify-content:space-between;align-items:center}
+.profile{display:flex;align-items:center;gap:12px}
+.avatar{width:47px;height:47px;border-radius:50%;background:linear-gradient(135deg,#111,#727272);padding:2px}
+.avatar-inner{height:100%;width:100%;border-radius:50%;background:var(--paper);display:grid;place-items:center;font-size:16px;font-weight:bold}
+.name strong{display:block;font-size:14px;letter-spacing:-.02em}
+.name small{color:var(--muted);font-size:12px}
+.dots{font-size:23px;letter-spacing:2px;line-height:1;color:#555}
+.stats{height:44px;margin:0 14px 15px;background:#f5f3ee;border-radius:13px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center;text-align:center;font-size:11px;color:var(--muted)}
+.stats strong{display:block;color:#111;font-size:13px;margin-bottom:2px}
+.tabs{height:39px;display:flex;justify-content:center;gap:55px;border-top:1px solid #efebe4;border-bottom:1px solid #efebe4;align-items:center}
+.icon-grid{display:grid;grid-template-columns:repeat(3,5px);grid-template-rows:repeat(3,5px);gap:2px}
+.icon-grid span{display:block;background:#111;border-radius:1px}
+.icon-tag{width:17px;height:17px;border:1.5px solid #aaa;border-radius:4px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap);min-height:390px;padding-top:4px}
+.tile{aspect-ratio:4/5;position:relative;overflow:hidden;background:#ece9e4;cursor:grab;touch-action:none;user-select:none}
+.tile:active{cursor:grabbing}
+.tile img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.empty{grid-column:1/-1;min-height:400px;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:25px}
+.drag-label{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.83);backdrop-filter:blur(6px);color:#111;border-radius:20px;padding:6px 8px;font-size:10px;font-weight:700;opacity:0;transition:opacity .16s}
+.remove{position:absolute;right:8px;top:8px;width:29px;height:29px;border:0;border-radius:50%;background:rgba(16,16,16,.76);backdrop-filter:blur(6px);color:#fff;font-size:18px;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .16s,transform .1s,background .15s}
+.remove:hover{transform:scale(1.06);background:#111}
+.tile:hover .drag-label{opacity:1}.tile:hover .remove,.remove:focus{opacity:1;pointer-events:auto}
+.sortable-ghost{opacity:.18}
+.sortable-drag{box-shadow:0 18px 40px rgba(0,0,0,.22)}
+.tip{width:min(100%,690px);margin:13px 0 0 auto;color:var(--muted);font-size:12px;line-height:1.5}
+@media (max-width:940px){
+ .shell{padding:19px 14px 40px}
+ .layout{display:flex;flex-direction:column;gap:22px}
+ .editor{width:100%;position:static}
+ .phone,.tip{margin-left:auto;margin-right:auto}
+ .preview-wrap{width:100%}
+}
+@media (max-width:560px){
+ .shell{padding:14px 0 34px}
+ .topbar{padding:0 15px;margin-bottom:16px}
+ .top-status{display:none}
+ .editor{border-left:0;border-right:0;border-radius:0;padding:20px 15px;box-shadow:none}
+ .preview-head{padding:0 15px}
+ .phone{border-left:0;border-right:0;border-radius:0;padding:0;box-shadow:none}
+ .device-top{display:none}
+ .tip{padding:0 15px}
+ .editor h1{font-size:30px}
+ .mobile-edit{display:flex;align-items:center;justify-content:center}
+ .tile{cursor:default;touch-action:pan-y}
+ .tile:hover .remove,.remove:focus{opacity:0;pointer-events:none}
+ .drag-label{display:none}
+ body.mobile-editing .tile{cursor:grab;touch-action:none}
+ body.mobile-editing .tile .remove{opacity:1;pointer-events:auto}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+ <header class="topbar">
+  <div class="brand"><div class="mark"></div><div class="brand-text"><strong>Grid Studio</strong><span>Feed Preview Tool</span></div></div>
+  <div class="top-status">Shareable online preview</div>
+ </header>
+
+ <div class="layout">
+  <aside class="editor">
+   <div class="step">Build your grid</div>
+   <h1>Plan the visual flow.</h1>
+   <p class="lead">Your starting feed is ready. Upload new images at the top, arrange the flow and share a short preview link.</p>
+   <div class="input-label"><span>Current feed</span><span class="count" id="count">0 images</span></div>
+   <div class="actions">
+    <label class="btn primary" id="uploadButton">
+     <input class="upload-input" id="uploadInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+     Upload images
+    </label>
+    <button class="btn share" id="share" type="button">Copy short link</button>
+   </div>
+   <p class="message" id="message">Images are loaded. New uploads appear first in the grid.</p>
+   <div class="undo-toast" id="undoToast" role="status" aria-live="polite">
+    <span>Image removed from grid.</span>
+    <button class="undo-button" id="undoDelete" type="button">Undo</button>
+   </div>
+  </aside>
+
+  <section class="preview-wrap">
+   <div class="preview-head">
+    <h2>Feed preview</h2>
+    <p>Drag to reorder</p>
+   </div>
+   <div class="phone">
+    <div class="device-top"><div class="dynamic-island"></div></div>
+    <div class="instagram-header">
+     <div class="profile"><div class="avatar"><div class="avatar-inner">G</div></div><div class="name"><strong>your.brand</strong><small>Visual preview</small></div></div>
+     <div class="dots">•••</div>
+    </div>
+    <div class="stats">
+     <div><strong id="postCount">0</strong>posts</div>
+     <div><strong>Preview</strong>mode</div>
+     <div><strong>4:5</strong>ratio</div>
+    </div>
+    <div class="tabs"><div class="icon-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="icon-tag"></div></div>
+    <div class="grid" id="grid"></div>
+   </div>
+   <p class="tip">Sharing creates a short link for the current image list and order. Rearrange again, then share a new link for the updated version.</p>
+  </section>
+ </div>
+</div>
+<button class="mobile-edit" id="mobileEdit" type="button" aria-pressed="false">Edit</button>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+(() => {
+ const known = {"https://ibb.co/vxvW105B": "https://i.ibb.co/Rp4K2RnS/DSC0210.jpg", "https://ibb.co/TMS58ZSN": "https://i.ibb.co/r2SJ6gSX/DSC0393.jpg", "https://ibb.co/PztCMCTV": "https://i.ibb.co/bR7dFdHG/DSC0534.jpg", "https://ibb.co/XZKsjJ13": "https://i.ibb.co/1fPq721d/DSC0599.jpg", "https://ibb.co/V00VQRzY": "https://i.ibb.co/dssBLFV4/DSC0657.jpg", "https://ibb.co/DHvBnzN6": "https://i.ibb.co/kswLF5pr/DSC0804.jpg", "https://ibb.co/LzGYT7Zd": "https://i.ibb.co/7J9j3m1t/DSC0874.jpg", "https://ibb.co/q3Xk6QTf": "https://i.ibb.co/YFYpgsHM/DSC0924.jpg", "https://ibb.co/WWKvqS6Z": "https://i.ibb.co/Z6TztyV5/DSC5505.jpg", "https://ibb.co/xStB7rTz": "https://i.ibb.co/3y9jCPZS/DSC5624.jpg", "https://ibb.co/x8r7xYMN": "https://i.ibb.co/BKYC0Gg9/DSC5718.jpg", "https://ibb.co/rXMSdkR": "https://i.ibb.co/gcwp4yL/DSC5737.jpg", "https://ibb.co/hJyxFjqF": "https://i.ibb.co/9kNmHLMH/DSC5973.jpg", "https://ibb.co/xZnQwmV": "https://i.ibb.co/1cCxBsH/DSC6152.jpg", "https://ibb.co/VcdKFkVY": "https://i.ibb.co/rRgWBXk2/DSC6381.jpg", "https://ibb.co/0jyY47LD": "https://i.ibb.co/bg5Nw0VW/DSC6441.jpg", "https://ibb.co/zhJN5Fy5": "https://i.ibb.co/TBLrT1VT/DSC6615.jpg", "https://ibb.co/JWzJtQwW": "https://i.ibb.co/zWSvxJTW/DSC6869.jpg", "https://ibb.co/dJ4Pwszp": "https://i.ibb.co/G3QW4fbM/DSC6918.jpg", "https://ibb.co/wr7c02mh": "https://i.ibb.co/dJtmWHY4/DSC7068.jpg", "https://ibb.co/nqg5Np9W": "https://i.ibb.co/HLFkfZ6J/DSC7186.jpg", "https://ibb.co/ksYW6pCM": "https://i.ibb.co/zTK0H1vN/DSC7218.jpg", "https://ibb.co/7tdZ50NM": "https://i.ibb.co/ZzpFPb14/DSC7351.jpg", "https://ibb.co/tpH40Knh": "https://i.ibb.co/qYDdHjhn/DSC7433.jpg", "https://ibb.co/KxVKqDKJ": "https://i.ibb.co/b5NbBFbk/DSC7487.jpg", "https://ibb.co/cSc7wFYH": "https://i.ibb.co/9k9ChTZL/DSC7743.jpg", "https://ibb.co/pvbk6qhf": "https://i.ibb.co/DDzjPdr9/DSC7820.jpg", "https://ibb.co/tw0K0Dtg": "https://i.ibb.co/j9CfCD2m/DSC7888.jpg", "https://ibb.co/RT1YkmY4": "https://i.ibb.co/B2mc5xcK/DSC7893.jpg", "https://ibb.co/j9ncrV7R": "https://i.ibb.co/5XbNRYqF/DSC8021.jpg", "https://ibb.co/FqqvsC9c": "https://i.ibb.co/PzzpT0RJ/DSC8127.jpg", "https://ibb.co/HmMLNq2": "https://i.ibb.co/qb4L0pn/DSC8151.jpg", "https://ibb.co/1YYRbTJM": "https://i.ibb.co/HLLGXqpC/DSC8231.jpg", "https://ibb.co/W4ms7wT4": "https://i.ibb.co/G4zFGLh4/DSC8950.jpg", "https://ibb.co/r2Dgry9Q": "https://i.ibb.co/WvmQJKCH/DSC9065.jpg", "https://ibb.co/8DmspCMS": "https://i.ibb.co/HDK4sS7k/DSC9090.jpg", "https://ibb.co/sdnk8z3v": "https://i.ibb.co/cS0M4VTc/DSC9128.jpg", "https://ibb.co/C3t6jsn1": "https://i.ibb.co/216SzYjn/DSC9349.jpg", "https://ibb.co/jkrKDJZ5": "https://i.ibb.co/CKHdQPst/DSC9394.jpg", "https://ibb.co/5hCCS404": "https://i.ibb.co/v4ffTqFq/DSC9399.jpg", "https://ibb.co/Ld4gCrCF": "https://i.ibb.co/Df3M7Y7J/DSC9479.jpg", "https://ibb.co/6R0kQvWh": "https://i.ibb.co/Z6z09HMs/DSC9490.jpg", "https://ibb.co/WN9Mf4HZ": "https://i.ibb.co/CpdYQ3wg/DSC9671.jpg", "https://ibb.co/Mxj6bMtG": "https://i.ibb.co/1tp638Pd/DSC9925.jpg", "https://ibb.co/Mx9px1WJ": "https://i.ibb.co/xt3GtgPr/1b2c76db-c84c-4657-a154-248ab3915e68.jpg", "https://ibb.co/Ps9rkGL3": "https://i.ibb.co/RGBg8TFZ/2aeeb4f6-491c-4650-b899-f47050d7ad34.jpg", "https://ibb.co/nq39dTJ8": "https://i.ibb.co/ZRH543D1/6d8c3197-ed56-4034-a7dd-2778310fec4c.jpg", "https://ibb.co/Y4dnCWbH": "https://i.ibb.co/DPMcJbL0/8d2debbd-7a09-4d63-8892-db4c4022e1ef.jpg", "https://ibb.co/JW5F8Rnm": "https://i.ibb.co/xKJ8wShX/09a10149-3e0b-4a54-879b-62d12792c506.jpg", "https://ibb.co/FbTQQyy7": "https://i.ibb.co/d0YNNVVK/9d53e32a-2ce4-4aa5-9a0d-f45803c56d91.jpg", "https://ibb.co/zH50ggV7": "https://i.ibb.co/dJczvv4L/174f094e-af5f-4814-9020-db020232ca01.jpg", "https://ibb.co/sv0QbjKH": "https://i.ibb.co/VW7DJVgm/598dd5a8-b40b-4a4b-8bc9-3ef5cd3124da.jpg", "https://ibb.co/5gV84NgQ": "https://i.ibb.co/4nxTt6nb/08485d60-1251-4259-a46d-c6998e102f35.jpg", "https://ibb.co/jkmZYp0k": "https://i.ibb.co/3m2YbJ6m/f5edf501-c356-4707-9fb2-1c77c8bbca85.jpg", "https://ibb.co/VWSv3t41": "https://i.ibb.co/hRWKCyz6/fae3f9cd-7e6e-456b-9af5-4bf66ce1ed37.jpg"};
+ const defaultLinks = ["https://i.ibb.co/dssBLFV4/DSC0657.jpg","https://i.ibb.co/ZRH543D1/6d8c3197-ed56-4034-a7dd-2778310fec4c.jpg","https://i.ibb.co/1fPq721d/DSC0599.jpg","https://i.ibb.co/BKYC0Gg9/DSC5718.jpg","https://i.ibb.co/kswLF5pr/DSC0804.jpg","https://i.ibb.co/bg5Nw0VW/DSC6441.jpg","https://i.ibb.co/Z6TztyV5/DSC5505.jpg","https://i.ibb.co/7J9j3m1t/DSC0874.jpg","https://i.ibb.co/3y9jCPZS/DSC5624.jpg","https://i.ibb.co/gcwp4yL/DSC5737.jpg","https://i.ibb.co/RGBg8TFZ/2aeeb4f6-491c-4650-b899-f47050d7ad34.jpg","https://i.ibb.co/YFYpgsHM/DSC0924.jpg","https://i.ibb.co/zWSvxJTW/DSC6869.jpg","https://i.ibb.co/9k9ChTZL/DSC7743.jpg","https://i.ibb.co/G3QW4fbM/DSC6918.jpg","https://i.ibb.co/b5NbBFbk/DSC7487.jpg","https://i.ibb.co/TBLrT1VT/DSC6615.jpg","https://i.ibb.co/HLFkfZ6J/DSC7186.jpg","https://i.ibb.co/PzzpT0RJ/DSC8127.jpg","https://i.ibb.co/xKJ8wShX/09a10149-3e0b-4a54-879b-62d12792c506.jpg","https://i.ibb.co/ZzpFPb14/DSC7351.jpg","https://i.ibb.co/B2mc5xcK/DSC7893.jpg","https://i.ibb.co/zTK0H1vN/DSC7218.jpg","https://i.ibb.co/5XbNRYqF/DSC8021.jpg","https://i.ibb.co/DDzjPdr9/DSC7820.jpg","https://i.ibb.co/j9CfCD2m/DSC7888.jpg","https://i.ibb.co/qYDdHjhn/DSC7433.jpg","https://i.ibb.co/G4zFGLh4/DSC8950.jpg","https://i.ibb.co/xt3GtgPr/1b2c76db-c84c-4657-a154-248ab3915e68.jpg","https://i.ibb.co/WvmQJKCH/DSC9065.jpg","https://i.ibb.co/qb4L0pn/DSC8151.jpg","https://i.ibb.co/HLLGXqpC/DSC8231.jpg","https://i.ibb.co/d0YNNVVK/9d53e32a-2ce4-4aa5-9a0d-f45803c56d91.jpg","https://i.ibb.co/Df3M7Y7J/DSC9479.jpg","https://i.ibb.co/HDK4sS7k/DSC9090.jpg","https://i.ibb.co/Z6z09HMs/DSC9490.jpg","https://i.ibb.co/CKHdQPst/DSC9394.jpg","https://i.ibb.co/v4ffTqFq/DSC9399.jpg","https://i.ibb.co/216SzYjn/DSC9349.jpg","https://i.ibb.co/dJtmWHY4/DSC7068.jpg","https://i.ibb.co/DPMcJbL0/8d2debbd-7a09-4d63-8892-db4c4022e1ef.jpg","https://i.ibb.co/CpdYQ3wg/DSC9671.jpg","https://i.ibb.co/9kNmHLMH/DSC5973.jpg","https://i.ibb.co/1tp638Pd/DSC9925.jpg","https://i.ibb.co/rRgWBXk2/DSC6381.jpg","https://i.ibb.co/cS0M4VTc/DSC9128.jpg","https://i.ibb.co/dJczvv4L/174f094e-af5f-4814-9020-db020232ca01.jpg","https://i.ibb.co/Rp4K2RnS/DSC0210.jpg","https://i.ibb.co/bR7dFdHG/DSC0534.jpg","https://i.ibb.co/1cCxBsH/DSC6152.jpg","https://i.ibb.co/r2SJ6gSX/DSC0393.jpg"];
+ const CLOUDINARY_CLOUD_NAME = "ddd2jzk7e";
+ const CLOUDINARY_UPLOAD_PRESET = "grid_studio_uploads";
+ const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+ const grid = document.getElementById("grid");
+ const count = document.getElementById("count");
+ const postCount = document.getElementById("postCount");
+ const message = document.getElementById("message");
+ const uploadInput = document.getElementById("uploadInput");
+ const uploadButton = document.getElementById("uploadButton");
+ const mobileEdit = document.getElementById("mobileEdit");
+ const undoToast = document.getElementById("undoToast");
+ const undoDelete = document.getElementById("undoDelete");
+ const mobileViewport = window.matchMedia("(max-width:560px)");
+ let items = [];
+ let sortable;
+ let deletedItem = null;
+ let mobileEditing = false;
+ let uploading = false;
+
+ function setMessage(text, type="") {
+  message.textContent = text;
+  message.className = "message " + type;
+ }
+
+ function encodeLinks(list) {
+  const text = list.join("\n");
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  bytes.forEach(byte => binary += String.fromCharCode(byte));
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+ }
+
+ function decodeLinks(value) {
+  try {
+   const base64 = value.replace(/-/g,"+").replace(/_/g,"/") + "===".slice((value.length + 3) % 4);
+   const binary = atob(base64);
+   const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+   return new TextDecoder().decode(bytes).split("\n").filter(Boolean);
+  } catch { return []; }
+ }
+
+ function setUrlState() {
+  const url = new URL(location.href);
+  if (items.length) url.hash = "g=" + encodeLinks(items);
+  else url.hash = "";
+  history.replaceState(null, "", url);
+ }
+
+ function fromUrl() {
+  const match = location.hash.match(/^#g=(.+)$/);
+  return match ? decodeLinks(match[1]) : [];
+ }
+
+ function hideUndo() {
+  undoToast.classList.remove("visible");
+  deletedItem = null;
+ }
+
+ function render() {
+  grid.innerHTML = "";
+  count.textContent = items.length + (items.length === 1 ? " image" : " images");
+  postCount.textContent = items.length;
+
+  if (!items.length) {
+   grid.innerHTML = '<div class="empty">Paste image links and click <strong>Load links</strong><br>to start designing your feed.</div>';
+   return;
+  }
+  items.forEach((url, index) => {
+   const tile = document.createElement("article");
+   tile.className = "tile";
+   tile.dataset.url = url;
+   const image = document.createElement("img");
+   image.src = url;
+   image.alt = "Post " + (index + 1);
+   image.loading = "lazy";
+   const label = document.createElement("span");
+   label.className = "drag-label";
+   label.textContent = "DRAG";
+   const remove = document.createElement("button");
+   remove.type = "button";
+   remove.className = "remove";
+   remove.setAttribute("aria-label", "Remove image");
+   remove.innerHTML = "&times;";
+   remove.addEventListener("pointerdown", event => {
+    event.stopPropagation();
+   });
+   remove.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Read the current visible order from the grid first.
+    // This ensures delete targets the exact clicked tile even after drag-and-drop.
+    const currentTiles = [...grid.querySelectorAll(".tile")];
+    const selectedIndex = currentTiles.indexOf(tile);
+    if (selectedIndex < 0) return;
+
+    items = currentTiles.map(currentTile => currentTile.dataset.url);
+    deletedItem = { url: items[selectedIndex], index: selectedIndex };
+    items.splice(selectedIndex, 1);
+
+    setUrlState();
+    render();
+    undoToast.classList.add("visible");
+    setMessage("Image removed. Use Undo or copy a new short link.", "good");
+   });
+   tile.append(image, label, remove);
+   grid.append(tile);
+  });
+  if (!sortable) {
+   sortable = Sortable.create(grid, {
+    animation: 190,
+    draggable: ".tile",
+    ghostClass: "sortable-ghost",
+    dragClass: "sortable-drag",
+    onEnd: () => {
+     items = [...grid.querySelectorAll(".tile")].map(tile => tile.dataset.url);
+      setUrlState();
+     render();
+     setMessage("Order saved. Copy a short link to send this updated preview.", "good");
+    }
+   });
+  }
+ }
+
+ function updateMobileEditMode() {
+  const mobile = mobileViewport.matches;
+  const editing = mobile && mobileEditing;
+  document.body.classList.toggle("mobile-editing", editing);
+  mobileEdit.classList.toggle("active", editing);
+  mobileEdit.textContent = editing ? "Done" : "Edit";
+  mobileEdit.setAttribute("aria-pressed", String(editing));
+  if (sortable) sortable.option("disabled", mobile && !editing);
+ }
+
+ async function uploadImages(files) {
+  const selected = [...files];
+  if (!selected.length || uploading) return;
+  uploading = true;
+  uploadInput.disabled = true;
+  uploadButton.classList.add("busy");
+  hideUndo();
+
+  try {
+   const uploadedUrls = [];
+   for (let index = 0; index < selected.length; index++) {
+    const file = selected[index];
+    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+     throw new Error("Only JPG, PNG and WEBP images can be uploaded.");
+    }
+    setMessage(`Uploading ${index + 1} of ${selected.length} to Cloudinary...`, "good");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    const response = await fetch(CLOUDINARY_UPLOAD_URL, { method: "POST", body: formData });
+    const result = await response.json();
+    if (!response.ok || !result.secure_url) {
+     throw new Error(result.error?.message || "Image upload failed.");
+    }
+    uploadedUrls.push(result.secure_url);
+   }
+   items = uploadedUrls.concat(items);
+   setUrlState();
+   render();
+   setMessage("Uploaded images added at the top of the grid. Copy short link when ready.", "good");
+  } catch (error) {
+   setMessage(error.message || "Image upload failed.", "bad");
+  } finally {
+   uploading = false;
+   uploadInput.value = "";
+   uploadInput.disabled = false;
+   uploadButton.classList.remove("busy");
+  }
+ }
+
+ function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+   return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+   const textarea = document.createElement("textarea");
+   textarea.value = text;
+   textarea.style.position = "fixed";
+   textarea.style.opacity = "0";
+   document.body.appendChild(textarea);
+   textarea.focus();
+   textarea.select();
+   try {
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    copied ? resolve() : reject(new Error("Copy failed."));
+   } catch (error) {
+    textarea.remove();
+    reject(error);
+   }
+  });
+ }
+
+ function shortenWithIsGd(longUrl) {
+  return new Promise((resolve, reject) => {
+   const callbackName = "__gridShorten_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+   const script = document.createElement("script");
+   const timeout = setTimeout(() => {
+    cleanup();
+    reject(new Error("Short link service timed out."));
+   }, 9000);
+
+   function cleanup() {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    script.remove();
+   }
+
+   window[callbackName] = response => {
+    cleanup();
+    if (response && response.shorturl) resolve(response.shorturl);
+    else reject(new Error(response?.errormessage || "Short link could not be generated."));
+   };
+
+   script.onerror = () => {
+    cleanup();
+    reject(new Error("Short link service is unavailable."));
+   };
+
+   const endpoint = "https://is.gd/create.php?format=json&callback=" +
+    encodeURIComponent(callbackName) + "&url=" + encodeURIComponent(longUrl);
+   script.src = endpoint;
+   document.body.appendChild(script);
+  });
+ }
+
+ async function copyLink() {
+  if (!items.length) { setMessage("There are no images to share.", "bad"); return; }
+  setUrlState();
+
+  const shareButton = document.getElementById("share");
+  const fullLink = location.href;
+  shareButton.classList.add("busy");
+  shareButton.textContent = "Creating link...";
+
+  try {
+   const cachedLong = localStorage.getItem("gridStudioLastLongLink");
+   const cachedShort = localStorage.getItem("gridStudioLastShortLink");
+   let shareLink = cachedLong === fullLink && cachedShort
+    ? cachedShort
+    : await shortenWithIsGd(fullLink);
+
+   localStorage.setItem("gridStudioLastLongLink", fullLink);
+   localStorage.setItem("gridStudioLastShortLink", shareLink);
+   await copyText(shareLink);
+   setMessage("Short share link copied. It opens this exact grid order.", "good");
+  } catch (error) {
+   try {
+    await copyText(fullLink);
+    setMessage("Shortening was unavailable, so the full share link was copied instead.", "good");
+   } catch {
+    setMessage("Copy the current URL from your browser address bar to share this preview.", "bad");
+   }
+  } finally {
+   shareButton.classList.remove("busy");
+   shareButton.textContent = "Copy short link";
+  }
+ }
+
+ document.getElementById("share").addEventListener("click", copyLink);
+ uploadInput.addEventListener("change", event => uploadImages(event.target.files));
+ mobileEdit.addEventListener("click", () => {
+  mobileEditing = !mobileEditing;
+  updateMobileEditMode();
+  setMessage(mobileEditing ? "Edit mode enabled. Drag or remove images." : "Edit complete. Scroll safely and copy a short link when ready.", "good");
+ });
+ mobileViewport.addEventListener?.("change", () => {
+  if (!mobileViewport.matches) mobileEditing = false;
+  updateMobileEditMode();
+ });
+
+ const shared = fromUrl();
+ items = shared.length ? shared : defaultLinks.slice();
+ setUrlState();
+ render();
+ if (shared.length) {
+  setMessage("Shared preview opened. Drag or remove images, then copy a new short link for changes.", "good");
+ } else {
+  setMessage("Images loaded. Drag, remove or share the preview.", "good");
+ }
+})();
+</script>
+</body>
+</html>
