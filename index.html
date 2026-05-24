@@ -54,6 +54,14 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
 .mobile-edit.active{background:var(--accent);color:#111}
 .btn{border-radius:13px;min-height:49px;padding:0 16px;border:1px solid var(--line);background:white;font-size:14px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;transition:transform .1s ease,opacity .15s ease}
 .btn:hover{opacity:.76}.btn:active{transform:scale(.985)}.btn.busy{opacity:.6;pointer-events:none}
+@keyframes openPanel{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.share-result{display:none;margin-top:14px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.share-result.visible{display:block;animation:openPanel .18s ease}
+.share-title{display:block;margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.share-row{display:flex;gap:8px}
+.share-field{flex:1;min-width:0;height:43px;border:1px solid var(--line);border-radius:10px;padding:0 11px;background:#f7f6f2;color:#2f2e2a;font-size:12px}
+.copy-ready{min-width:92px;background:var(--black);border-color:var(--black);color:#fff}
+.share-note{font-size:11.5px;line-height:1.45;color:var(--muted);margin:9px 1px 0}
 .btn.primary{background:var(--black);border-color:var(--black);color:white}
 .btn.share{background:var(--accent);border-color:var(--accent);color:#111}
 .message{margin:16px 0 0;min-height:32px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.5}
@@ -140,7 +148,15 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
      <input class="upload-input" id="uploadInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
      Upload images
     </label>
-    <button class="btn share" id="share" type="button">Copy short link</button>
+    <button class="btn share" id="share" type="button">Create short link</button>
+   </div>
+   <div class="share-result" id="shareResult">
+    <span class="share-title" id="shareTitle">Your share link</span>
+    <div class="share-row">
+     <input class="share-field" id="shareField" type="text" readonly>
+     <button class="btn copy-ready" id="copyGenerated" type="button">Copy link</button>
+    </div>
+    <p class="share-note" id="shareNote"></p>
    </div>
    <p class="message" id="message">Images are loaded. New uploads appear first in the grid.</p>
    <div class="undo-toast" id="undoToast" role="status" aria-live="polite">
@@ -168,7 +184,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
     <div class="tabs"><div class="icon-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="icon-tag"></div></div>
     <div class="grid" id="grid"></div>
    </div>
-   <p class="tip">Sharing creates a short link for the current image list and order. Rearrange again, then share a new link for the updated version.</p>
+   <p class="tip">Create a short link for the current grid, then click Copy link. Rearrange again to create a new shared preview.</p>
   </section>
  </div>
 </div>
@@ -185,6 +201,11 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
  const count = document.getElementById("count");
  const postCount = document.getElementById("postCount");
  const message = document.getElementById("message");
+ const shareResult = document.getElementById("shareResult");
+ const shareTitle = document.getElementById("shareTitle");
+ const shareField = document.getElementById("shareField");
+ const copyGenerated = document.getElementById("copyGenerated");
+ const shareNote = document.getElementById("shareNote");
  const uploadInput = document.getElementById("uploadInput");
  const uploadButton = document.getElementById("uploadButton");
  const mobileEdit = document.getElementById("mobileEdit");
@@ -278,6 +299,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
     deletedItem = { url: items[selectedIndex], index: selectedIndex };
     items.splice(selectedIndex, 1);
 
+    hideShareResult();
     setUrlState();
     render();
     undoToast.classList.add("visible");
@@ -294,7 +316,8 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
     dragClass: "sortable-drag",
     onEnd: () => {
      items = [...grid.querySelectorAll(".tile")].map(tile => tile.dataset.url);
-      setUrlState();
+      hideShareResult();
+     setUrlState();
      render();
      setMessage("Order saved. Copy a short link to send this updated preview.", "good");
     }
@@ -339,6 +362,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
     uploadedUrls.push(result.secure_url);
    }
    items = uploadedUrls.concat(items);
+   hideShareResult();
    setUrlState();
    render();
    setMessage("Uploaded images added at the top of the grid. Copy short link when ready.", "good");
@@ -350,6 +374,18 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
    uploadInput.disabled = false;
    uploadButton.classList.remove("busy");
   }
+ }
+
+ function hideShareResult() {
+  shareResult.classList.remove("visible");
+  shareField.value = "";
+ }
+
+ function displayShareResult(link, isShort, note) {
+  shareTitle.textContent = isShort ? "Short link ready" : "Full share link";
+  shareField.value = link;
+  shareNote.textContent = note;
+  shareResult.classList.add("visible");
  }
 
  function copyText(text) {
@@ -415,33 +451,57 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
   const shareButton = document.getElementById("share");
   const fullLink = location.href;
   shareButton.classList.add("busy");
-  shareButton.textContent = "Creating link...";
+  shareButton.textContent = "Creating...";
 
   try {
+   let shareLink;
+   if (fullLink.length > 5000) {
+    displayShareResult(
+     fullLink,
+     false,
+     "This preview is longer than the 5,000-character limit supported by is.gd. Copy the full link instead."
+    );
+    setMessage("The grid is too large for is.gd, but the full working link is ready below.", "good");
+    return;
+   }
+
    const cachedLong = localStorage.getItem("gridStudioLastLongLink");
    const cachedShort = localStorage.getItem("gridStudioLastShortLink");
-   let shareLink = cachedLong === fullLink && cachedShort
+   shareLink = cachedLong === fullLink && cachedShort
     ? cachedShort
     : await shortenWithIsGd(fullLink);
 
    localStorage.setItem("gridStudioLastLongLink", fullLink);
    localStorage.setItem("gridStudioLastShortLink", shareLink);
-   await copyText(shareLink);
-   setMessage("Short share link copied. It opens this exact grid order.", "good");
+   displayShareResult(shareLink, true, "Click Copy link to copy it reliably.");
+   setMessage("Short link created. Use the Copy link button below.", "good");
   } catch (error) {
-   try {
-    await copyText(fullLink);
-    setMessage("Shortening was unavailable, so the full share link was copied instead.", "good");
-   } catch {
-    setMessage("Copy the current URL from your browser address bar to share this preview.", "bad");
-   }
+   displayShareResult(
+    fullLink,
+    false,
+    "Shortening did not respond. This full link still opens your exact grid."
+   );
+   setMessage("Short link could not be created, but the working full link is ready below.", "good");
   } finally {
    shareButton.classList.remove("busy");
-   shareButton.textContent = "Copy short link";
+   shareButton.textContent = "Create short link";
   }
  }
 
  document.getElementById("share").addEventListener("click", copyLink);
+ copyGenerated.addEventListener("click", async () => {
+  if (!shareField.value) return;
+  try {
+   await copyText(shareField.value);
+   setMessage("Link copied. It opens this exact grid order.", "good");
+   copyGenerated.textContent = "Copied";
+   window.setTimeout(() => { copyGenerated.textContent = "Copy link"; }, 1300);
+  } catch {
+   shareField.focus();
+   shareField.select();
+   setMessage("Select and copy the displayed link manually.", "good");
+  }
+ });
  uploadInput.addEventListener("change", event => uploadImages(event.target.files));
  mobileEdit.addEventListener("click", () => {
   mobileEditing = !mobileEditing;
