@@ -263,7 +263,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
   postCount.textContent = items.length;
 
   if (!items.length) {
-   grid.innerHTML = '<div class="empty">Paste image links and click <strong>Load links</strong><br>to start designing your feed.</div>';
+   grid.innerHTML = '<div class="empty">Upload images to start designing<br>your feed preview.</div>';
    return;
   }
   items.forEach((url, index) => {
@@ -322,6 +322,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
      setMessage("Order saved. Copy a short link to send this updated preview.", "good");
     }
    });
+   updateMobileEditMode();
   }
  }
 
@@ -520,7 +521,7 @@ textarea:focus{outline:2px solid var(--black);outline-offset:-1px}
  if (shared.length) {
   setMessage("Shared preview opened. Drag or remove images, then copy a new short link for changes.", "good");
  } else {
-  setMessage("Images loaded. Drag, remove or share the preview.", "good");
+  setMessage("Images loaded. On mobile, tap Edit before rearranging or deleting posts.", "good");
  }
 })();
 </script>
